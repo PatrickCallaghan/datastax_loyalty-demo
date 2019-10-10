@@ -80,6 +80,5 @@ public class LoyaltyService {
 	public List<UserPoints> getHistory(String customerid) {
 		return dao.getHistory(customerid);
 	}
-	
 }
 

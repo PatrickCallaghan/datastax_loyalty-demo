@@ -24,6 +24,7 @@ public class Main {
 
 	public Main() {
 
+		
 		String noOfCustomersStr = PropertyHelper.getProperty("noOfCustomers", "1");
 		String noOfPointsStr = PropertyHelper.getProperty("noOfPoints", "15");
 		int noOfDays = Integer.parseInt(PropertyHelper.getProperty("noOfDays", "365"));

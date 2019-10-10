@@ -7,6 +7,7 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.datastax.demo.utils.PropertyHelper;
 import com.datastax.dse.driver.api.core.DseSession;
 import com.datastax.loyalty.model.UserPoints;
 import com.datastax.oss.driver.api.core.cql.PreparedStatement;
@@ -50,9 +51,14 @@ public class CustomerLoyaltyDao {
 
 	public CustomerLoyaltyDao(String[] contactPoints) {
 
+		String credsZip = PropertyHelper.getProperty("credsZip", "/Users/patrickcallaghan/secure-connect-testing.zip");
+		String username = PropertyHelper.getProperty("username", "Tester");
+		String password = PropertyHelper.getProperty("password", "password");
+		String keyspace = PropertyHelper.getProperty("keyspace", "testkeyspace");
+		
 		session = DseSession.builder()
-				.withCloudSecureConnectBundle("/Users/patrickcallaghan/secure-connect-testing.zip")
-				.withAuthCredentials("Patrick", "XxxxxxX").withKeyspace("testing").build();
+				.withCloudSecureConnectBundle(credsZip)
+				.withAuthCredentials(username, password).withKeyspace(keyspace).build();
 
 		this.createCustomer = session.prepare(CREATE_CUSTOMER);
 		this.sumBalance = session.prepare(SUM_BALANCE);
