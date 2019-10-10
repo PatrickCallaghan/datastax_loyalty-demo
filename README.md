@@ -13,7 +13,7 @@ The main points of the application are :
 	2. Then we have enough points to redeem the amount requested.
 3. If the user has enough points, the we reduce the balance and insert the redeem event. This is done in a batch to avoid any concurrency issues.
 
-To create the schema, run the following in the cqlsh while using the keyspace
+To create the schema, run the following in DataStax Studio while using the keyspace
 
 	create table if not exists user_points (
 		id text,
