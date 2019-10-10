@@ -52,7 +52,7 @@ public class CustomerLoyaltyDao {
 
 		session = DseSession.builder()
 				.withCloudSecureConnectBundle("/Users/patrickcallaghan/secure-connect-testing.zip")
-				.withAuthCredentials("Patrick", "walrus2005").withKeyspace("testing").build();
+				.withAuthCredentials("Patrick", "XxxxxxX").withKeyspace("testing").build();
 
 		this.createCustomer = session.prepare(CREATE_CUSTOMER);
 		this.sumBalance = session.prepare(SUM_BALANCE);
