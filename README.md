@@ -13,7 +13,7 @@ The main points of the application are :
 	2. Then we have enough points to redeem the amount requested.
 3. If the user has enough points, the we reduce the balance and insert the redeem event. This is done in a batch to avoid any concurrency issues.
 
-To create the schema, run the following in the cqlsh while using the keyspace and credentials given in Apollo.
+To create the schema, run the following in the cqlsh while using the keyspace
 
 	create table if not exists user_points (
 		id text,
@@ -25,7 +25,7 @@ To create the schema, run the following in the cqlsh while using the keyspace an
 		PRIMARY KEY(id,time)
 	)with clustering order by (time desc);
 	
-To create some loyalty points and redeems, run the following 
+To create some loyalty points and redeems, run the following with your credentials and connection details from Apollo 
 	
 	mvn exec:java -Dexec.mainClass="com.datastax.loyalty.Main"  -DcredsZip=/tmp/creds.zip -Dusername=Tester -Dpassword=pass -Dkeyspace=mykeyspace
 
