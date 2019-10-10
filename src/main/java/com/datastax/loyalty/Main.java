@@ -15,8 +15,7 @@ import com.datastax.demo.utils.KillableRunner;
 import com.datastax.demo.utils.PropertyHelper;
 import com.datastax.demo.utils.ThreadUtils;
 import com.datastax.demo.utils.Timer;
-import com.datastax.loyalty.dao.CustomerLoyaltyDao;
-import com.datastax.loyalty.model.CustomerLoyalty;
+import com.datastax.loyalty.model.UserPoints;
 import com.datastax.loyalty.service.LoyaltyService;
 
 public class Main {
@@ -25,11 +24,11 @@ public class Main {
 
 	public Main() {
 
-		String noOfCustomersStr = PropertyHelper.getProperty("noOfCustomers", "5000");
-		String noOfPointsStr = PropertyHelper.getProperty("noOfPoints", "500000");
+		String noOfCustomersStr = PropertyHelper.getProperty("noOfCustomers", "1");
+		String noOfPointsStr = PropertyHelper.getProperty("noOfPoints", "15");
 		int noOfDays = Integer.parseInt(PropertyHelper.getProperty("noOfDays", "365"));
 		
-		BlockingQueue<CustomerLoyalty> queue = new ArrayBlockingQueue<CustomerLoyalty>(1000);
+		BlockingQueue<UserPoints> queue = new ArrayBlockingQueue<UserPoints>(1000);
 		List<KillableRunner> tasks = new ArrayList<>();
 		
 		//Executor for Threads
@@ -55,7 +54,11 @@ public class Main {
 		logger.info("Creating customers");
 		DateTime date = DateTime.now().minusDays(noOfDays);	
 		for (int i = 0; i < noOfCustomers; i++) {
-			service.createCustomer("U" + i);
+			service.createCustomer("U" + i, date.toDate());
+			
+//			if (++i % 10000 == 0){
+//				logger.info("Created " + i + " customers");
+//			}
 		}
  		logger.info("Created customers");
 		
@@ -66,29 +69,23 @@ public class Main {
 		for (int i = 0; i < noOfPoints; i++) {						
 			//Add interval to date
 			date = date.plusMillis(interval);
-			String id;
+			String id = "U" + new Double(Math.random()* noOfCustomers).intValue();				
+			UserPoints custL;
+	
+			// create time by adding a random no of millis
 			
 			if (Math.random() < .1){
-				id = "U" + new Double(Math.random()* 1000).intValue();				 			
-			}else{
-				id = "U" + new Double(Math.random()* noOfCustomers).intValue();
-			}
-				
-			CustomerLoyalty custL;
-	
-			// create time by adding a random no of millis									
-			if (Math.random() < .1){
 				//Redeem
-				custL = new CustomerLoyalty(id, date.toDate(), -5, "Redeem Coffee");
+				custL = new UserPoints(id, date.toDate(), -5, "Redeem Coffee");
 			}else{
 				//Collect
-				custL = new CustomerLoyalty(id, date.toDate(), 1, "Collect from Purchase");
+				custL = new UserPoints(id, date.toDate(), 1, "Collect from Purchase");
 			}
 						
 			try{
 				queue.put(custL);
 				
-				if (++count % 10000 == 0){
+				if (++count % 100 == 0){
 					logger.info("Created " + count + " reward points");
 				}
 			} catch (InterruptedException e) {

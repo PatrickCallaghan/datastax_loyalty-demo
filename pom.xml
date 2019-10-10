@@ -8,17 +8,34 @@
 	<version>0.1-SNAPSHOT</version>
 	<packaging>war</packaging>
 
+	<repositories>
+		<repository>
+			<id>datastax-releases-public-local</id>
+			<url>https://repo.datastax.com/datastax-public-releases-local/</url>
+			<releases>
+				<enabled>true</enabled>
+			</releases>
+			<snapshots>
+				<enabled>false</enabled>
+			</snapshots>
+		</repository>
+	</repositories>
 	<dependencies>
 		<dependency>
 			<groupId>com.datastax.dse</groupId>
 			<artifactId>dse-java-driver-core</artifactId>
-			<version>1.4.0</version>
+			<version>2.2.0-cloud-01</version>
 		</dependency>
 		<dependency>
 			<groupId>com.datastax.dse</groupId>
-			<artifactId>dse-java-driver-mapping</artifactId>
-			<version>1.4.0</version>
-		</dependency>	
+			<artifactId>dse-java-driver-query-builder</artifactId>
+			<version>2.2.0</version>
+		</dependency>
+		<dependency>
+			  <groupId>com.datastax.dse</groupId>
+			  <artifactId>dse-java-driver-mapper-runtime</artifactId>
+			  <version>2.2.0</version>
+		</dependency>
 		<dependency>
 			<groupId>org.apache.commons</groupId>
 			<artifactId>commons-math3</artifactId>

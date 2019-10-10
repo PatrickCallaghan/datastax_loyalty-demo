@@ -2,12 +2,13 @@ package com.datastax.loyalty.model;
 
 import java.util.Date;
 
-import com.datastax.driver.mapping.annotations.ClusteringColumn;
-import com.datastax.driver.mapping.annotations.PartitionKey;
-import com.datastax.driver.mapping.annotations.Table;
+import com.datastax.oss.driver.api.mapper.annotations.ClusteringColumn;
+import com.datastax.oss.driver.api.mapper.annotations.Entity;
+import com.datastax.oss.driver.api.mapper.annotations.PartitionKey;
 
-@Table(keyspace="datastax_loyalty", name="customer_points")
-public class CustomerLoyalty {
+
+@Entity
+public class UserPoints {
 
 	@PartitionKey
 	private String id;
@@ -19,9 +20,9 @@ public class CustomerLoyalty {
 	private int value; 
 	private String comment;
 	
-	public CustomerLoyalty(){}
+	public UserPoints(){}
 	
-	public CustomerLoyalty(String id, Date time, int value, String comment) {
+	public UserPoints(String id, Date time, int value, String comment) {
 		super();
 		this.id = id;
 		this.time = time;
