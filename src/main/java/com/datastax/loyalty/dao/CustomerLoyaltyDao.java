@@ -25,20 +25,14 @@ public class CustomerLoyaltyDao {
 
 	private static Logger logger = LoggerFactory.getLogger(CustomerLoyaltyDao.class);
 
-	private static String keyspaceName = "testing";
+	private String pointsTable;
 
-	private static String pointsTable = keyspaceName + ".user_points";
-
-	private static String INSERT_POINTS = "insert into " + pointsTable
-			+ " (id, time, value, comment) values (?,?,?,?);";
-	private static String CREATE_CUSTOMER = "insert into " + pointsTable
-			+ " (id, time, balance, balanceat) values (?,?,?,?);";
-	private static String GET_BALANCE = "select id, balance, balanceat from " + pointsTable + " where id = ?";
-	private static String SUM_BALANCE = "select id, sum(value) as value from " + pointsTable
-			+ " where id = ? and time > ?";
-	private static String UPDATE_BALANCE = "update " + pointsTable
-			+ " set balance=?, balanceat=? where id = ? if balance = ?";
-	private static String GET_HISTORY = "select * from " + pointsTable + " where id = ?";
+	private String INSERT_POINTS = "insert into " + pointsTable + " (id, time, value, comment) values (?,?,?,?);";
+	private String CREATE_CUSTOMER = "insert into " + pointsTable + " (id, time, balance, balanceat) values (?,?,?,?);";
+	private String GET_BALANCE = "select id, balance, balanceat from " + pointsTable + " where id = ?";
+	private String SUM_BALANCE = "select id, sum(value) as value from " + pointsTable + " where id = ? and time > ?";
+	private String UPDATE_BALANCE = "update " + pointsTable + " set balance=?, balanceat=? where id = ? if balance = ?";
+	private String GET_HISTORY = "select * from " + pointsTable + " where id = ?";
 
 	private DseSession session;
 
@@ -55,10 +49,18 @@ public class CustomerLoyaltyDao {
 		String username = PropertyHelper.getProperty("username", "Tester");
 		String password = PropertyHelper.getProperty("password", "password");
 		String keyspace = PropertyHelper.getProperty("keyspace", "testkeyspace");
-		
-		session = DseSession.builder()
-				.withCloudSecureConnectBundle(credsZip)
-				.withAuthCredentials(username, password).withKeyspace(keyspace).build();
+
+		session = DseSession.builder().withCloudSecureConnectBundle(credsZip).withAuthCredentials(username, password)
+				.withKeyspace(keyspace).build();
+
+		pointsTable = keyspace + ".user_points";
+
+		INSERT_POINTS = "insert into " + pointsTable + " (id, time, value, comment) values (?,?,?,?);";
+		CREATE_CUSTOMER = "insert into " + pointsTable + " (id, time, balance, balanceat) values (?,?,?,?);";
+		GET_BALANCE = "select id, balance, balanceat from " + pointsTable + " where id = ?";
+		SUM_BALANCE = "select id, sum(value) as value from " + pointsTable + " where id = ? and time > ?";
+		UPDATE_BALANCE = "update " + pointsTable + " set balance=?, balanceat=? where id = ? if balance = ?";
+		GET_HISTORY = "select * from " + pointsTable + " where id = ?";
 
 		this.createCustomer = session.prepare(CREATE_CUSTOMER);
 		this.sumBalance = session.prepare(SUM_BALANCE);
@@ -105,7 +107,8 @@ public class CustomerLoyaltyDao {
 	public boolean updateBalance(String id, int balance, Date balanceat, int oldBalance) {
 
 		try {
-			ResultSet resultSet = this.session.execute(updateBalance.bind(balance, balanceat.toInstant(), id, oldBalance));
+			ResultSet resultSet = this.session
+					.execute(updateBalance.bind(balance, balanceat.toInstant(), id, oldBalance));
 
 			if (resultSet != null) {
 				Row row = resultSet.one();
@@ -128,7 +131,8 @@ public class CustomerLoyaltyDao {
 
 		try {
 
-			this.session.execute(insertPoints.bind("" + cust.getId(), cust.getTime().toInstant(), cust.getValue(),cust.getComment()));
+			this.session.execute(insertPoints.bind("" + cust.getId(), cust.getTime().toInstant(), cust.getValue(),
+					cust.getComment()));
 		} catch (WriteTimeoutException e) {
 			logger.warn(e.getMessage());
 			return false;
