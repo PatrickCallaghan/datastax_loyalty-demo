@@ -48,7 +48,6 @@ The Rest API commands are
 	eg
 
 	http://localhost:8080/datastax-loyalty-demo/rest/createcustomer/U123141412
-```
 
 #### Add Points 
 
@@ -57,7 +56,6 @@ The Rest API commands are
 	eg
 
 	http://localhost:8080/datastax-loyalty-demo/rest/addpoints/U123141412/1
-```
 
 #### Redeem Points 
 
