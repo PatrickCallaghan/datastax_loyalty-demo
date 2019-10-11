@@ -36,7 +36,7 @@ To get the current (live) balance of any user.
 
 To start the webservice
 
-	mvn jetty:run
+	mvn jetty:run -DcredsZip=/tmp/creds.zip -Dusername=Tester -Dpassword=pass -Dkeyspace=mykeyspace
 
 
 The Rest API commands are
