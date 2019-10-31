@@ -68,21 +68,22 @@ public class CustomerLoyaltyDao {
 		this.updateBalance = session.prepare(UPDATE_BALANCE);
 		this.getBalance = session.prepare(GET_BALANCE);
 		this.getHistory = session.prepare(GET_HISTORY);
+		
 	}
 
 	public void insertPoints(UserPoints cust) {
 		session.execute(
-				insertPoints.bind("" + cust.getId(), cust.getTime().toInstant(), cust.getValue(), cust.getComment()));
+				insertPoints.bind("" + cust.getId(), cust.getTime().toInstant(), cust.getValue(), cust.getComment()).setConsistencyLevel(com.datastax.oss.driver.api.core.ConsistencyLevel.LOCAL_QUORUM));
 	}
 
 	public void createCustomer(String custid, Date date) {
 
-		session.execute(createCustomer.bind(custid, date.toInstant(), 10, date.toInstant()));
-		session.execute(insertPoints.bind(custid, date.toInstant(), 10, "Starting Gift"));
+		session.execute(createCustomer.bind(custid, date.toInstant(), 10, date.toInstant()).setConsistencyLevel(com.datastax.oss.driver.api.core.ConsistencyLevel.LOCAL_QUORUM));
+		session.execute(insertPoints.bind(custid, date.toInstant(), 10, "Starting Gift").setConsistencyLevel(com.datastax.oss.driver.api.core.ConsistencyLevel.LOCAL_QUORUM));
 	}
 
 	public UserPoints getBalance(String custid) {
-		ResultSet rs = session.execute(getBalance.bind(custid));
+		ResultSet rs = session.execute(getBalance.bind(custid).setConsistencyLevel(com.datastax.oss.driver.api.core.ConsistencyLevel.LOCAL_QUORUM));
 		UserPoints loyalty = new UserPoints();
 
 		Row row = rs.one();
@@ -94,7 +95,7 @@ public class CustomerLoyaltyDao {
 	}
 
 	public UserPoints sumBalance(String custid, Date date) {
-		ResultSet rs = session.execute(sumBalance.bind(custid, date.toInstant()));
+		ResultSet rs = session.execute(sumBalance.bind(custid, date.toInstant()).setConsistencyLevel(com.datastax.oss.driver.api.core.ConsistencyLevel.LOCAL_QUORUM));
 		UserPoints loyalty = new UserPoints();
 
 		Row row = rs.one();
@@ -108,7 +109,7 @@ public class CustomerLoyaltyDao {
 
 		try {
 			ResultSet resultSet = this.session
-					.execute(updateBalance.bind(balance, balanceat.toInstant(), id, oldBalance));
+					.execute(updateBalance.bind(balance, balanceat.toInstant(), id, oldBalance).setConsistencyLevel(com.datastax.oss.driver.api.core.ConsistencyLevel.LOCAL_QUORUM));
 
 			if (resultSet != null) {
 				Row row = resultSet.one();
@@ -132,7 +133,7 @@ public class CustomerLoyaltyDao {
 		try {
 
 			this.session.execute(insertPoints.bind("" + cust.getId(), cust.getTime().toInstant(), cust.getValue(),
-					cust.getComment()));
+					cust.getComment()).setConsistencyLevel(com.datastax.oss.driver.api.core.ConsistencyLevel.LOCAL_QUORUM));
 		} catch (WriteTimeoutException e) {
 			logger.warn(e.getMessage());
 			return false;
@@ -143,7 +144,7 @@ public class CustomerLoyaltyDao {
 
 	public List<UserPoints> getHistory(String customerid) {
 
-		ResultSet rs = session.execute(getHistory.bind(customerid));
+		ResultSet rs = session.execute(getHistory.bind(customerid).setConsistencyLevel(com.datastax.oss.driver.api.core.ConsistencyLevel.LOCAL_QUORUM));
 		List<UserPoints> history = new ArrayList<UserPoints>();
 
 		for (Row row : rs.all()) {
