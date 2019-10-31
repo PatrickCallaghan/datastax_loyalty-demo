@@ -7,15 +7,13 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.datastax.driver.core.BatchStatement;
-import com.datastax.driver.core.Cluster;
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.ResultSetFuture;
-import com.datastax.driver.core.Row;
-import com.datastax.driver.core.Session;
-import com.datastax.driver.core.exceptions.WriteTimeoutException;
-import com.datastax.loyalty.model.CustomerLoyalty;
+import com.datastax.demo.utils.PropertyHelper;
+import com.datastax.dse.driver.api.core.DseSession;
+import com.datastax.loyalty.model.UserPoints;
+import com.datastax.oss.driver.api.core.cql.PreparedStatement;
+import com.datastax.oss.driver.api.core.cql.ResultSet;
+import com.datastax.oss.driver.api.core.cql.Row;
+import com.datastax.oss.driver.api.core.servererrors.WriteTimeoutException;
 
 /**
  * Inserts into 2 tables
@@ -26,21 +24,18 @@ import com.datastax.loyalty.model.CustomerLoyalty;
 public class CustomerLoyaltyDao {
 
 	private static Logger logger = LoggerFactory.getLogger(CustomerLoyaltyDao.class);
-	private Session session;
 
-	private static String keyspaceName = "datastax_demo";
+	private String pointsTable;
 
-	private static String pointsTable = keyspaceName + ".user_points";
+	private String INSERT_POINTS = "insert into " + pointsTable + " (id, time, value, comment) values (?,?,?,?);";
+	private String CREATE_CUSTOMER = "insert into " + pointsTable + " (id, time, balance, balanceat) values (?,?,?,?);";
+	private String GET_BALANCE = "select id, balance, balanceat from " + pointsTable + " where id = ?";
+	private String SUM_BALANCE = "select id, sum(value) as value from " + pointsTable + " where id = ? and time > ?";
+	private String UPDATE_BALANCE = "update " + pointsTable + " set balance=?, balanceat=? where id = ? if balance = ?";
+	private String GET_HISTORY = "select * from " + pointsTable + " where id = ?";
 
-	private static String INSERT_POINTS = "insert into " + pointsTable + " (id, time, value, comment) values (?,?,?,?);";
-	private static String CREATE_CUSTOMER = "insert into " + pointsTable + " (id, time, balance, balanceat) values (?,?,?,?);";
-	private static String GET_BALANCE = "select id, balance, balanceat from " + pointsTable + " where id = ?";
-	private static String SUM_BALANCE = "select id, sum(value) as value from " + pointsTable + " where id = ? and time > ?";
-	private static String UPDATE_BALANCE = "update " + pointsTable + " set balance=?, balanceat=? where id = ? if balance = ?";
-	private static String GET_HISTORY = "select * from " + pointsTable + " where id = ?";
-	
-	private Cluster cluster;
-	
+	private DseSession session;
+
 	private PreparedStatement createCustomer;
 	private PreparedStatement sumBalance;
 	private PreparedStatement insertPoints;
@@ -50,10 +45,23 @@ public class CustomerLoyaltyDao {
 
 	public CustomerLoyaltyDao(String[] contactPoints) {
 
-		cluster = Cluster.builder().addContactPoints(contactPoints).build();
+		String credsZip = PropertyHelper.getProperty("credsZip", "/Users/patrickcallaghan/secure-connect-testing.zip");
+		String username = PropertyHelper.getProperty("username", "Tester");
+		String password = PropertyHelper.getProperty("password", "password");
+		String keyspace = PropertyHelper.getProperty("keyspace", "testkeyspace");
 
-		this.session = cluster.connect();
-		
+		session = DseSession.builder().withCloudSecureConnectBundle(credsZip).withAuthCredentials(username, password)
+				.withKeyspace(keyspace).build();
+
+		pointsTable = keyspace + ".user_points";
+
+		INSERT_POINTS = "insert into " + pointsTable + " (id, time, value, comment) values (?,?,?,?);";
+		CREATE_CUSTOMER = "insert into " + pointsTable + " (id, time, balance, balanceat) values (?,?,?,?);";
+		GET_BALANCE = "select id, balance, balanceat from " + pointsTable + " where id = ?";
+		SUM_BALANCE = "select id, sum(value) as value from " + pointsTable + " where id = ? and time > ?";
+		UPDATE_BALANCE = "update " + pointsTable + " set balance=?, balanceat=? where id = ? if balance = ?";
+		GET_HISTORY = "select * from " + pointsTable + " where id = ?";
+
 		this.createCustomer = session.prepare(CREATE_CUSTOMER);
 		this.sumBalance = session.prepare(SUM_BALANCE);
 		this.insertPoints = session.prepare(INSERT_POINTS);
@@ -62,109 +70,94 @@ public class CustomerLoyaltyDao {
 		this.getHistory = session.prepare(GET_HISTORY);
 	}
 
-	public void insertPoints(CustomerLoyalty cust) {
-		session.execute(insertPoints.bind("" + cust.getId(), cust.getTime(),cust.getValue(), cust.getComment()));
+	public void insertPoints(UserPoints cust) {
+		session.execute(
+				insertPoints.bind("" + cust.getId(), cust.getTime().toInstant(), cust.getValue(), cust.getComment()));
 	}
 
 	public void createCustomer(String custid, Date date) {
-		session.execute(createCustomer.bind(custid, date, 10, date));
-		session.execute(insertPoints.bind(custid, date, 10, "Starting Gift"));
+
+		session.execute(createCustomer.bind(custid, date.toInstant(), 10, date.toInstant()));
+		session.execute(insertPoints.bind(custid, date.toInstant(), 10, "Starting Gift"));
 	}
 
-	public CustomerLoyalty getBalance(String custid) {
+	public UserPoints getBalance(String custid) {
 		ResultSet rs = session.execute(getBalance.bind(custid));
-		CustomerLoyalty loyalty = new CustomerLoyalty();
+		UserPoints loyalty = new UserPoints();
 
-		if (!rs.isExhausted()){
-			Row row = rs.one();
-			loyalty.setId(row.getString("id"));
-			loyalty.setBalance(row.getInt("balance"));
-			loyalty.setBalanceat(row.getTimestamp("balanceat"));
-		}
-		
-		return loyalty;
-	}
-	
-	public CustomerLoyalty sumBalance(String custid, Date date) {
-		ResultSet rs = session.execute(sumBalance.bind(custid, date));
-		CustomerLoyalty loyalty = new CustomerLoyalty();
+		Row row = rs.one();
+		loyalty.setId(row.getString("id"));
+		loyalty.setBalance(row.getInt("balance"));
+		loyalty.setBalanceat(Date.from(row.getInstant("balanceat")));
 
-		if (!rs.isExhausted()){
-			Row row = rs.one();
-			loyalty.setId(row.getString("id"));
-			loyalty.setValue(row.getInt("value"));
-		}
-		
 		return loyalty;
 	}
 
+	public UserPoints sumBalance(String custid, Date date) {
+		ResultSet rs = session.execute(sumBalance.bind(custid, date.toInstant()));
+		UserPoints loyalty = new UserPoints();
+
+		Row row = rs.one();
+		loyalty.setId(custid);
+		loyalty.setValue(row.getInt("value"));
+
+		return loyalty;
+	}
 
 	public boolean updateBalance(String id, int balance, Date balanceat, int oldBalance) {
-		
-		try {			
-			ResultSetFuture resultSet = this.session.executeAsync(updateBalance.bind(balance, balanceat, id, oldBalance));
-			
+
+		try {
+			ResultSet resultSet = this.session
+					.execute(updateBalance.bind(balance, balanceat.toInstant(), id, oldBalance));
+
 			if (resultSet != null) {
-				Row row = resultSet.getUninterruptibly().one();
-				boolean applied = row.getBool(0);
-				
-				if (!applied){
+				Row row = resultSet.one();
+				boolean applied = row.getBoolean(0);
+
+				if (!applied) {
 					logger.info("Update failed as balance is " + row.getInt(1) + " and not " + oldBalance);
 					return false;
-				}				
+				}
 			}
 		} catch (WriteTimeoutException e) {
 			logger.warn(e.getMessage());
 			return false;
-		}		
-		
+		}
+
 		return true;
 	}
 
-	public boolean updateBalanceAndInsert(String id, int balance, Date balanceat, int oldBalance, CustomerLoyalty cust) {
-		
+	public boolean insert(UserPoints cust) {
+
 		try {
-			BatchStatement batch = new BatchStatement();
-			batch.add(updateBalance.bind(balance, balanceat, id, oldBalance));
-			batch.add(insertPoints.bind("" + cust.getId(), cust.getTime(),cust.getValue(), cust.getComment()));
-			
-			ResultSetFuture resultSet = this.session.executeAsync(batch);
-			
-			if (resultSet != null) {
-				Row row = resultSet.getUninterruptibly().one();
-				boolean applied = row.getBool(0);
-				
-				if (!applied){
-					logger.info("Update failed as balance is " + row.getInt("balance") + " and not " + oldBalance);
-					return false;
-				}				
-			}
+
+			this.session.execute(insertPoints.bind("" + cust.getId(), cust.getTime().toInstant(), cust.getValue(),
+					cust.getComment()));
 		} catch (WriteTimeoutException e) {
 			logger.warn(e.getMessage());
 			return false;
-		}		
-		
+		}
+
 		return true;
 	}
 
-	public List<CustomerLoyalty> getHistory(String customerid) {
+	public List<UserPoints> getHistory(String customerid) {
 
-		ResultSet rs = session.execute(getHistory.bind(customerid
-				));
-		List<CustomerLoyalty> history = new ArrayList<CustomerLoyalty>();
+		ResultSet rs = session.execute(getHistory.bind(customerid));
+		List<UserPoints> history = new ArrayList<UserPoints>();
 
-		for (Row row : rs.all()){
-						
-			CustomerLoyalty loyalty = new CustomerLoyalty();
+		for (Row row : rs.all()) {
+
+			UserPoints loyalty = new UserPoints();
 			loyalty.setId(row.getString("id"));
 			loyalty.setBalance(row.getInt("balance"));
-			loyalty.setBalanceat(row.getTimestamp("balanceat"));
+			loyalty.setBalanceat(Date.from(row.getInstant("balanceat")));
 			loyalty.setValue(row.getInt("value"));
 			loyalty.setComment(row.getString("comment"));
-			
+
 			history.add(loyalty);
 		}
-			
+
 		return history;
 	}
 }

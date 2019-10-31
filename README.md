@@ -13,74 +13,75 @@ The main points of the application are :
 	2. Then we have enough points to redeem the amount requested.
 3. If the user has enough points, the we reduce the balance and insert the redeem event. This is done in a batch to avoid any concurrency issues.
 
-To create the schema, run the following
+To create the schema, run the following in DataStax Studio while using the keyspace
 
-	mvn clean compile exec:java -Dexec.mainClass="com.datastax.demo.SchemaSetup" -DcontactPoints=localhost
+	create table if not exists user_points (
+		id text,
+		time timestamp,
+		balance int static,
+		balanceat timestamp static,
+		value int,
+		comment text,
+		PRIMARY KEY(id,time)
+	)with clustering order by (time desc);
 	
-To create some loyalty points and redeems, run the following 
+To create some loyalty points and redeems, run the following with your credentials and connection details from Apollo 
 	
-	mvn exec:java -Dexec.mainClass="com.datastax.loyalty.Main"  -DcontactPoints=localhost
+	mvn exec:java -Dexec.mainClass="com.datastax.loyalty.Main"  -DcredsZip=/tmp/creds.zip -Dusername=Tester -Dpassword=pass -Dkeyspace=mykeyspace
 
 To get the current (live) balance of any user.  
-```
-select sum(value) from user_points where id = '0';
-```
+
+	select sum(value) from user_points where id = 'U0';
+
 
 To start the webservice
-```
-mvn jetty:run
-```
+
+	mvn jetty:run -DcredsZip=/tmp/creds.zip -Dusername=Tester -Dpassword=pass -Dkeyspace=mykeyspace
+
 
 The Rest API commands are
 
 #### Create Customer 
-```
-/createcustomer/{customerid}
 
-eg
+	/createcustomer/{customerid}
 
-http://localhost:8080/datastax-loyalty-demo/rest/createcustomer/U123141412
-```
+	eg
+
+	http://localhost:8080/datastax-loyalty-demo/rest/createcustomer/U123141412
 
 #### Add Points 
-```
-/addpoints/{customerid}/{points}
 
-eg
+	/addpoints/{customerid}/{points}
 
-http://localhost:8080/datastax-loyalty-demo/rest/addpoints/U123141412/1
-```
+	eg
+
+	http://localhost:8080/datastax-loyalty-demo/rest/addpoints/U123141412/1
 
 #### Redeem Points 
-```
-/redeempoints/{customerid}/{points}
 
-eg
+	/redeempoints/{customerid}/{points}
 
-http://localhost:8080/datastax-loyalty-demo/rest/redeempoints/U123141412/5
-```
+	eg
+
+	http://localhost:8080/datastax-loyalty-demo/rest/redeempoints/U123141412/5
+
 
 #### Get Balance 
-```
-/getbalance/{customerid}
 
-eg
-
-http://localhost:8080/datastax-loyalty-demo/rest/getbalance/U123141412
-```
-
+	/getbalance/{customerid}
+	
+	eg
+	
+	http://localhost:8080/datastax-loyalty-demo/rest/getbalance/U123141412
+	
+	
 #### Get History 
-```
-/gethistory/{customerid}
 
-eg
+	/gethistory/{customerid}
 
-http://localhost:8080/datastax-loyalty-demo/rest/gethistory/U123141412
-```
+	eg
 
+	http://localhost:8080/datastax-loyalty-demo/rest/gethistory/U123141412
 
-To remove the tables and the schema, run the following.
-
-    mvn exec:java -Dexec.mainClass="com.datastax.demo.SchemaTeardown"
     
     
